@@ -16,6 +16,12 @@ The [javascript](javascript/) directory includes examples built with Notion's of
 - **[parse-text-from-any-block-type](javascript/parse-text-from-any-block-type/)**: Extract text content from different block types
 - **[web-form-with-express](javascript/web-form-with-express/)**: Build a web form that submits data to Notion
 
+### Workers
+
+The [workers](workers/) directory includes examples built with the Notion Workers SDK:
+
+- **[ppt-creator](workers/tools/ppt-creator/)**: Read a Notion page and generate a PowerPoint presentation, uploaded as a page comment
+
 ## Running an example
 
 Each example has its own README with specific instructions. Generally you'll need to:
