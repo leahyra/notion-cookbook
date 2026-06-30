@@ -7,6 +7,10 @@
 //   3. Wire it into index.ts
 
 const PER_PAGE = 100
+const ASSOCIATION_BATCH_SIZE = 100
+const API_ROOT = "https://api.hubapi.com"
+
+export type BeforeRequest = () => Promise<void>
 
 function requireEnv(name: string): string {
   const value = process.env[name]?.trim()
@@ -24,12 +28,20 @@ function getToken(): string {
   return requireEnv("HUBSPOT_ACCESS_TOKEN")
 }
 
-async function fetchJson<T>(url: string): Promise<T> {
+async function fetchJson<T>(
+  url: string,
+  beforeRequest: BeforeRequest,
+  init?: RequestInit
+): Promise<T> {
+  const token = getToken()
+  const headers = new Headers(init?.headers)
+  headers.set("Authorization", `Bearer ${token}`)
+  headers.set("Accept", "application/json")
+
+  await beforeRequest()
   const response = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${getToken()}`,
-      Accept: "application/json",
-    },
+    ...init,
+    headers,
   })
 
   const text = await response.text()
@@ -47,7 +59,6 @@ type CrmListResponse<T> = {
   results: {
     id: string
     properties: T
-    associations?: Record<string, { results: { id: string }[] }>
     createdAt: string
     updatedAt: string
     archived: boolean
@@ -65,40 +76,106 @@ export type CrmRecord<T> = {
   updatedAt: string
 }
 
+type AssociationBatchInput = {
+  id: string
+  after?: string
+}
+
+type AssociationBatchResponse = {
+  results: {
+    from: { id: string }
+    to: { toObjectId: string }[]
+    paging?: { next?: { after: string } }
+  }[]
+}
+
+async function fetchAllAssociations(
+  fromObjectType: string,
+  toObjectType: string,
+  recordIds: string[],
+  beforeRequest: BeforeRequest
+): Promise<Map<string, string[]>> {
+  const uniqueIds = [...new Set(recordIds)]
+  const associations = new Map<string, Set<string>>(
+    uniqueIds.map((id) => [id, new Set<string>()])
+  )
+  const seenCursors = new Set<string>()
+  let pending: AssociationBatchInput[] = uniqueIds.map((id) => ({ id }))
+
+  while (pending.length > 0) {
+    const next: AssociationBatchInput[] = []
+
+    for (
+      let index = 0;
+      index < pending.length;
+      index += ASSOCIATION_BATCH_SIZE
+    ) {
+      const inputs = pending.slice(index, index + ASSOCIATION_BATCH_SIZE)
+      const body = await fetchJson<AssociationBatchResponse>(
+        `${API_ROOT}/crm/associations/2026-03/${fromObjectType}/${toObjectType}/batch/read`,
+        beforeRequest,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ inputs }),
+        }
+      )
+
+      for (const result of body.results) {
+        const ids = associations.get(result.from.id) ?? new Set<string>()
+        for (const association of result.to) {
+          ids.add(association.toObjectId)
+        }
+        associations.set(result.from.id, ids)
+
+        const after = result.paging?.next?.after
+        if (after) {
+          const cursorKey = `${result.from.id}:${after}`
+          if (seenCursors.has(cursorKey)) {
+            throw new Error(
+              `HubSpot repeated association cursor for ${fromObjectType} ${result.from.id}`
+            )
+          }
+          seenCursors.add(cursorKey)
+          next.push({ id: result.from.id, after })
+        }
+      }
+    }
+
+    pending = next
+  }
+
+  return new Map(
+    [...associations].map(([recordId, ids]) => [recordId, [...ids]])
+  )
+}
+
 async function fetchCrmPage<T>(
   objectType: string,
   properties: string[],
-  cursor?: string,
-  associations?: string[]
+  beforeRequest: BeforeRequest,
+  cursor?: string
 ): Promise<{ records: CrmRecord<T>[]; nextCursor: string | undefined }> {
-  const url = new URL(`https://api.hubapi.com/crm/v3/objects/${objectType}`)
+  const url = new URL(`${API_ROOT}/crm/objects/2026-03/${objectType}`)
   url.searchParams.set("limit", String(PER_PAGE))
   url.searchParams.set("properties", properties.join(","))
-  if (associations?.length) {
-    url.searchParams.set("associations", associations.join(","))
-  }
   if (cursor) {
     url.searchParams.set("after", cursor)
   }
 
-  const body = await fetchJson<CrmListResponse<T>>(url.toString())
+  const body = await fetchJson<CrmListResponse<T>>(
+    url.toString(),
+    beforeRequest
+  )
   const records = body.results
     .filter((r) => !r.archived)
-    .map((r) => {
-      const assoc: Record<string, string[]> = {}
-      if (r.associations) {
-        for (const [key, val] of Object.entries(r.associations)) {
-          assoc[key] = val.results.map((a) => a.id)
-        }
-      }
-      return {
-        id: r.id,
-        properties: r.properties,
-        associations: assoc,
-        createdAt: r.createdAt,
-        updatedAt: r.updatedAt,
-      }
-    })
+    .map((r) => ({
+      id: r.id,
+      properties: r.properties,
+      associations: {},
+      createdAt: r.createdAt,
+      updatedAt: r.updatedAt,
+    }))
 
   return {
     records,
@@ -112,96 +189,57 @@ async function fetchCrmPage<T>(
 
 export type HubSpotOwner = {
   id: string
-  firstName: string
-  lastName: string
-  email: string
+  firstName?: string | null
+  lastName?: string | null
+  email?: string | null
 }
 
 export type OwnerLookup = Map<string, HubSpotOwner>
 
-export async function fetchAllOwners(): Promise<OwnerLookup> {
+export async function fetchAllOwners(
+  beforeRequest: BeforeRequest
+): Promise<OwnerLookup> {
   const owners: OwnerLookup = new Map()
-  let after: string | undefined
 
-  do {
-    const url = new URL("https://api.hubapi.com/crm/v3/owners")
-    url.searchParams.set("limit", String(PER_PAGE))
-    if (after) url.searchParams.set("after", after)
+  // Records can remain assigned to deactivated owners. HubSpot exposes active
+  // and archived owners as separate result sets, so fetch both.
+  for (const archived of [false, true]) {
+    let after: string | undefined
 
-    const body = await fetchJson<{
-      results: HubSpotOwner[]
-      paging?: { next?: { after: string } }
-    }>(url.toString())
+    do {
+      const url = new URL(`${API_ROOT}/crm/owners/2026-03`)
+      url.searchParams.set("limit", String(PER_PAGE))
+      url.searchParams.set("archived", String(archived))
+      if (after) url.searchParams.set("after", after)
 
-    for (const owner of body.results) {
-      owners.set(owner.id, owner)
-    }
+      const body = await fetchJson<{
+        results: HubSpotOwner[]
+        paging?: { next?: { after: string } }
+      }>(url.toString(), beforeRequest)
 
-    after = body.paging?.next?.after
-  } while (after)
+      for (const owner of body.results) {
+        owners.set(owner.id, owner)
+      }
+
+      after = body.paging?.next?.after
+    } while (after)
+  }
 
   return owners
 }
 
-export function ownerName(owners: OwnerLookup, id: string | null): string | null {
+export function ownerName(
+  owners: OwnerLookup,
+  id: string | null
+): string | null {
   if (!id) return null
   const owner = owners.get(id)
   if (!owner) return null
-  const name = `${owner.firstName} ${owner.lastName}`.trim()
-  return name || owner.email || null
-}
-
-// ---------------------------------------------------------------------------
-// Batch read — resolve a set of record IDs to their properties in one call
-// https://developers.hubspot.com/docs/api/crm/contacts#batch
-// ---------------------------------------------------------------------------
-
-export type NameLookup = Map<string, string>
-
-export async function batchReadNames(
-  objectType: string,
-  ids: string[],
-  nameProperties: string[],
-  formatter?: (props: Record<string, string | null>) => string | null
-): Promise<NameLookup> {
-  const names: NameLookup = new Map()
-  if (ids.length === 0) return names
-
-  const unique = [...new Set(ids)]
-  const url = `https://api.hubapi.com/crm/v3/objects/${objectType}/batch/read`
-
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${getToken()}`,
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    },
-    body: JSON.stringify({
-      properties: nameProperties,
-      inputs: unique.map((id) => ({ id })),
-    }),
-  })
-
-  const text = await response.text()
-  if (!response.ok) {
-    throw new Error(
-      `HubSpot API error (${response.status}): ${text || "No response body"}`
-    )
-  }
-
-  const body = JSON.parse(text) as {
-    results: { id: string; properties: Record<string, string | null> }[]
-  }
-
-  for (const record of body.results) {
-    const name = formatter
-      ? formatter(record.properties)
-      : record.properties[nameProperties[0]]
-    if (name) names.set(record.id, name)
-  }
-
-  return names
+  const name = [owner.firstName, owner.lastName]
+    .map((part) => part?.trim())
+    .filter((part): part is string => Boolean(part))
+    .join(" ")
+  return name || owner.email?.trim() || null
 }
 
 // ---------------------------------------------------------------------------
@@ -222,9 +260,12 @@ type PipelineResponse = {
   }[]
 }
 
-export async function fetchDealPipelines(): Promise<PipelineLookup> {
+export async function fetchDealPipelines(
+  beforeRequest: BeforeRequest
+): Promise<PipelineLookup> {
   const body = await fetchJson<PipelineResponse>(
-    "https://api.hubapi.com/crm/v3/pipelines/deals"
+    `${API_ROOT}/crm/pipelines/2026-03/deals`,
+    beforeRequest
   )
 
   const pipelines = new Map<string, string>()
@@ -258,7 +299,7 @@ export type HubSpotContact = {
   lifecyclestage: string | null
   hs_lead_status: string | null
   hubspot_owner_id: string | null
-  hs_last_sales_activity_timestamp: string | null
+  notes_last_updated: string | null
   num_associated_deals: string | null
   recent_deal_amount: string | null
   createdate: string | null
@@ -274,19 +315,23 @@ const CONTACT_PROPERTIES = [
   "lifecyclestage",
   "hs_lead_status",
   "hubspot_owner_id",
-  "hs_last_sales_activity_timestamp",
+  "notes_last_updated",
   "num_associated_deals",
   "recent_deal_amount",
   "createdate",
 ]
 
-export async function fetchContactsPage(cursor?: string): Promise<{
+export async function fetchContactsPage(
+  beforeRequest: BeforeRequest,
+  cursor?: string
+): Promise<{
   contacts: CrmRecord<HubSpotContact>[]
   nextCursor: string | undefined
 }> {
   const { records, nextCursor } = await fetchCrmPage<HubSpotContact>(
     "contacts",
     CONTACT_PROPERTIES,
+    beforeRequest,
     cursor
   )
   return { contacts: records, nextCursor }
@@ -327,17 +372,35 @@ const DEAL_PROPERTIES = [
   "createdate",
 ]
 
-export async function fetchDealsPage(cursor?: string): Promise<{
+export async function fetchDealsPage(
+  beforeRequest: BeforeRequest,
+  cursor?: string
+): Promise<{
   deals: CrmRecord<HubSpotDeal>[]
   nextCursor: string | undefined
 }> {
   const { records, nextCursor } = await fetchCrmPage<HubSpotDeal>(
     "deals",
     DEAL_PROPERTIES,
-    cursor,
-    ["companies", "contacts"]
+    beforeRequest,
+    cursor
   )
-  return { deals: records, nextCursor }
+
+  const dealIds = records.map((deal) => deal.id)
+  const [companies, contacts] = await Promise.all([
+    fetchAllAssociations("deals", "companies", dealIds, beforeRequest),
+    fetchAllAssociations("deals", "contacts", dealIds, beforeRequest),
+  ])
+  const deals = records.map((deal) => ({
+    ...deal,
+    associations: {
+      ...deal.associations,
+      companies: companies.get(deal.id) ?? [],
+      contacts: contacts.get(deal.id) ?? [],
+    },
+  }))
+
+  return { deals, nextCursor }
 }
 
 // ---------------------------------------------------------------------------
@@ -381,13 +444,17 @@ const COMPANY_PROPERTIES = [
   "createdate",
 ]
 
-export async function fetchCompaniesPage(cursor?: string): Promise<{
+export async function fetchCompaniesPage(
+  beforeRequest: BeforeRequest,
+  cursor?: string
+): Promise<{
   companies: CrmRecord<HubSpotCompany>[]
   nextCursor: string | undefined
 }> {
   const { records, nextCursor } = await fetchCrmPage<HubSpotCompany>(
     "companies",
     COMPANY_PROPERTIES,
+    beforeRequest,
     cursor
   )
   return { companies: records, nextCursor }
