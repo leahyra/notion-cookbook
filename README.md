@@ -21,71 +21,28 @@ directory.
   [Linear](workers/linear-sync/), [PagerDuty](workers/pagerduty-sync/),
   [Salesforce](workers/salesforce-sync/), [Sentry](workers/sentry-sync/),
   [Snowflake](workers/snowflake-sync/), or [Zendesk](workers/zendesk-sync/).
-- **Give a Notion agent a new tool:** connect it to
-  [Airflow](workers/airflow/), [CloudWatch Logs](workers/cloudwatch-logs/),
-  [Postgres](workers/postgres-query/), or one of the other Worker tools below.
+- **Give a Notion Agent a reliable new capability:** execute a repeatable API
+  workflow in one tool call, or connect to [Airflow](workers/airflow/),
+  [CloudWatch Logs](workers/cloudwatch-logs/),
+  [Postgres](workers/postgres-query/), and more.
 - **React to external events:** receive and verify
   [Zendesk webhooks](workers/zendesk-webhook/).
 
-## API examples
-
-These examples use the official JavaScript SDK and run locally with Node.js.
-See the [API examples guide](examples/) for shared setup information.
-
-| Task                                                         | Example                                                                    | Integrations         |
-| ------------------------------------------------------------ | -------------------------------------------------------------------------- | -------------------- |
-| Learn blocks, pages, databases, queries, and file uploads    | [Introduction to the Notion API](examples/intro-to-notion-api/)            | Notion API           |
-| Send an email when a database status changes                 | [Database email update](examples/database-email-update/)                   | Notion API, SendGrid |
-| Fill a database with correctly typed sample rows             | [Generate random data](examples/generate-random-data/)                     | Notion API           |
-| Copy GitHub issues into a Notion database                    | [Notion–GitHub issue sync](examples/notion-github-sync/)                   | Notion API, GitHub   |
-| Update Notion tasks when linked pull requests close or merge | [Notion task–GitHub PR sync](examples/notion-task-github-pr-sync/)         | Notion API, GitHub   |
-| Extract plain text from Notion blocks                        | [Parse text from any block type](examples/parse-text-from-any-block-type/) | Notion API           |
-| Read beyond the 10,000-row query limit                       | [Query large data sources](examples/query-large-data-sources/)             | Notion API           |
-| Create databases, pages, blocks, and comments from a web UI  | [Web form with Express](examples/web-form-with-express/)                   | Notion API, Express  |
-
-## Worker examples
-
-Workers are server-side extensions deployed to Notion. A **sync** maintains a
-managed Notion database, a **tool** gives a Notion agent a callable capability,
-and a **webhook** handles events from another service. See the complete
-[Workers guide](workers/) for setup and deployment.
-
-### Sync external data into Notion
-
-| Task                                                        | Worker                                      | Source     |
-| ----------------------------------------------------------- | ------------------------------------------- | ---------- |
-| Learn the sync pattern with seeded, in-memory data          | [DuckDB sync](workers/duckdb-sync/)         | DuckDB     |
-| Sync issues and pull requests                               | [GitHub sync](workers/github-sync/)         | GitHub     |
-| Sync contacts, deals, and companies                         | [HubSpot sync](workers/hubspot-sync/)       | HubSpot    |
-| Sync companies, contacts, conversations, and tickets        | [Intercom sync](workers/intercom-sync/)     | Intercom   |
-| Sync issues, sprints, analytics, and projects               | [Jira sync](workers/jira-sync/)             | Jira Cloud |
-| Sync projects, issues, and initiatives                      | [Linear sync](workers/linear-sync/)         | Linear     |
-| Monitor PagerDuty incidents and service readiness in Notion | [PagerDuty sync](workers/pagerduty-sync/)   | PagerDuty  |
-| Sync accounts and opportunities                             | [Salesforce sync](workers/salesforce-sync/) | Salesforce |
-| Coordinate issue triage, service risk, and rollout health   | [Sentry sync](workers/sentry-sync/)         | Sentry     |
-| Sync the result of a warehouse query                        | [Snowflake sync](workers/snowflake-sync/)   | Snowflake  |
-| Sync tickets, users, organizations, and support metrics     | [Zendesk sync](workers/zendesk-sync/)       | Zendesk    |
-
-### Add tools to a Notion agent
-
-| Task                                                | Worker                                            | Integration         |
-| --------------------------------------------------- | ------------------------------------------------- | ------------------- |
-| Inspect DAGs, runs, tasks, and logs                 | [Airflow](workers/airflow/)                       | Apache Airflow      |
-| Render and insert Vega-Lite charts                  | [Chart generator](workers/chart-generator/)       | Vega-Lite           |
-| Browse log groups, streams, and events              | [CloudWatch Logs](workers/cloudwatch-logs/)       | AWS CloudWatch Logs |
-| Learn the database-query pattern with seeded data   | [DuckDB query](workers/duckdb-query/)             | DuckDB              |
-| Query a database with read-only SQL                 | [Postgres query](workers/postgres-query/)         | PostgreSQL          |
-| Turn a Notion page into PowerPoint slides (`.pptx`) | [PowerPoint creator](workers/powerpoint-creator/) | Notion, PowerPoint  |
-| Query a warehouse with read-only SQL                | [Snowflake query](workers/snowflake-query/)       | Snowflake           |
-| Learn the database-query pattern with seeded data   | [SQLite query](workers/sqlite-query/)             | SQLite              |
-
-### Handle webhooks
-
-| Task                                                 | Worker                                      | Integration |
-| ---------------------------------------------------- | ------------------------------------------- | ----------- |
-| Verify ticket events and upsert tickets and comments | [Zendesk webhook](workers/zendesk-webhook/) | Zendesk     |
-
 ## Quickstarts
+
+### Using this cookbook with a coding agent
+
+Tell the agent the outcome or integration you need, then point it to:
+
+- [`catalog.json`](catalog.json), the machine-readable index of every runnable
+  project and its supported commands.
+- [`AGENTS.md`](AGENTS.md), the canonical instructions for finding, running,
+  adapting, adding, and validating recipes.
+- The selected project's README and entrypoint, which are authoritative for its
+  setup and implementation.
+
+For example: "Use `catalog.json` to find the Linear sync recipe. Explain its
+data flow, adapt it to include issue labels, and run its offline checks."
 
 ### Run an API example
 
@@ -125,19 +82,63 @@ After deployment, add the Worker to a custom agent under **Tools and access >
 Add connection**. Other Workers may need service credentials or database
 configuration; follow their READMEs.
 
-## Using this cookbook with a coding agent
+## API examples
 
-Tell the agent the outcome or integration you need, then point it to:
+These examples use the official JavaScript SDK and run locally with Node.js.
+See the [API examples guide](examples/) for shared setup information.
 
-- [`catalog.json`](catalog.json), the machine-readable index of every runnable
-  project and its supported commands.
-- [`AGENTS.md`](AGENTS.md), the canonical instructions for finding, running,
-  adapting, adding, and validating recipes.
-- The selected project's README and entrypoint, which are authoritative for its
-  setup and implementation.
+| Task                                                         | Example                                                                    | Integrations         |
+| ------------------------------------------------------------ | -------------------------------------------------------------------------- | -------------------- |
+| Learn blocks, pages, databases, queries, and file uploads    | [Introduction to the Notion API](examples/intro-to-notion-api/)            | Notion API           |
+| Send an email when a database status changes                 | [Database email update](examples/database-email-update/)                   | Notion API, SendGrid |
+| Fill a database with correctly typed sample rows             | [Generate random data](examples/generate-random-data/)                     | Notion API           |
+| Copy GitHub issues into a Notion database                    | [Notion–GitHub issue sync](examples/notion-github-sync/)                   | Notion API, GitHub   |
+| Update Notion tasks when linked pull requests close or merge | [Notion task–GitHub PR sync](examples/notion-task-github-pr-sync/)         | Notion API, GitHub   |
+| Extract plain text from Notion blocks                        | [Parse text from any block type](examples/parse-text-from-any-block-type/) | Notion API           |
+| Read beyond the 10,000-row query limit                       | [Query large data sources](examples/query-large-data-sources/)             | Notion API           |
+| Create databases, pages, blocks, and comments from a web UI  | [Web form with Express](examples/web-form-with-express/)                   | Notion API, Express  |
 
-For example: "Use `catalog.json` to find the Linear sync recipe. Explain its
-data flow, adapt it to include issue labels, and run its offline checks."
+## Worker examples
+
+Workers are server-side extensions deployed to Notion. A **sync** maintains a
+managed Notion database, a **tool** gives a Notion Agent a callable capability,
+and a **webhook** handles events from another service. See the complete
+[Workers guide](workers/) for setup and deployment.
+
+### Sync external data into Notion
+
+| Task                                                        | Worker                                      | Source     |
+| ----------------------------------------------------------- | ------------------------------------------- | ---------- |
+| Learn the sync pattern with seeded, in-memory data          | [DuckDB sync](workers/duckdb-sync/)         | DuckDB     |
+| Sync issues and pull requests                               | [GitHub sync](workers/github-sync/)         | GitHub     |
+| Sync contacts, deals, and companies                         | [HubSpot sync](workers/hubspot-sync/)       | HubSpot    |
+| Sync companies, contacts, conversations, and tickets        | [Intercom sync](workers/intercom-sync/)     | Intercom   |
+| Sync issues, sprints, analytics, and projects               | [Jira sync](workers/jira-sync/)             | Jira Cloud |
+| Sync projects, issues, and initiatives                      | [Linear sync](workers/linear-sync/)         | Linear     |
+| Monitor PagerDuty incidents and service readiness in Notion | [PagerDuty sync](workers/pagerduty-sync/)   | PagerDuty  |
+| Sync accounts and opportunities                             | [Salesforce sync](workers/salesforce-sync/) | Salesforce |
+| Coordinate issue triage, service risk, and rollout health   | [Sentry sync](workers/sentry-sync/)         | Sentry     |
+| Sync the result of a warehouse query                        | [Snowflake sync](workers/snowflake-sync/)   | Snowflake  |
+| Sync tickets, users, organizations, and support metrics     | [Zendesk sync](workers/zendesk-sync/)       | Zendesk    |
+
+### Add tools to a Notion Agent
+
+| Task                                                | Worker                                            | Integration         |
+| --------------------------------------------------- | ------------------------------------------------- | ------------------- |
+| Inspect DAGs, runs, tasks, and logs                 | [Airflow](workers/airflow/)                       | Apache Airflow      |
+| Render and insert Vega-Lite charts                  | [Chart generator](workers/chart-generator/)       | Vega-Lite           |
+| Browse log groups, streams, and events              | [CloudWatch Logs](workers/cloudwatch-logs/)       | AWS CloudWatch Logs |
+| Learn the database-query pattern with seeded data   | [DuckDB query](workers/duckdb-query/)             | DuckDB              |
+| Query a database with read-only SQL                 | [Postgres query](workers/postgres-query/)         | PostgreSQL          |
+| Turn a Notion page into PowerPoint slides (`.pptx`) | [PowerPoint creator](workers/powerpoint-creator/) | Notion, PowerPoint  |
+| Query a warehouse with read-only SQL                | [Snowflake query](workers/snowflake-query/)       | Snowflake           |
+| Learn the database-query pattern with seeded data   | [SQLite query](workers/sqlite-query/)             | SQLite              |
+
+### Handle webhooks
+
+| Task                                                 | Worker                                      | Integration |
+| ---------------------------------------------------- | ------------------------------------------- | ----------- |
+| Verify ticket events and upsert tickets and comments | [Zendesk webhook](workers/zendesk-webhook/) | Zendesk     |
 
 ## More resources
 
