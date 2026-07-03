@@ -33,15 +33,19 @@ ntn workers env set ZENDESK_API_TOKEN=your-api-token
 ntn workers env set ZENDESK_API_USER_EMAIL=agent@example.com
 ```
 
-Preview the ticket sync without changing Notion, then run it:
+Preview the ticket sync without changing Notion. Then populate Organizations
+and Users before Tickets so the first ticket pass can resolve its relation
+targets:
 
 ```sh
 ntn workers sync trigger ticketsSync --preview
+ntn workers sync trigger organizationsSync
+ntn workers sync trigger usersSync
 ntn workers sync trigger ticketsSync
 ```
 
-The real run populates **Support Tickets**. The other five databases populate
-on their schedules, or you can [trigger them manually](#triggering-syncs-manually).
+The other three databases populate on their schedules, or you can
+[trigger them manually](#triggering-syncs-manually).
 
 These databases can contain ticket descriptions, organization notes, user
 emails and phone numbers, and CSAT feedback. Review their Notion sharing
@@ -62,41 +66,44 @@ settings before giving a broader audience access.
 
 ### Zendesk plan compatibility
 
-To run all six syncs as written, use Zendesk Support Professional or higher, or
-Zendesk Suite Growth or higher, with the updated CSAT experience enabled and an
-admin API user with API token access. Accounts that do not meet this
-configuration can still use the core ticket, organization, user, and
+To populate all six databases as written, use Zendesk Support Professional or
+higher, or Zendesk Suite Growth or higher, with the updated CSAT experience
+enabled and an admin API user with API token access. Accounts that do not meet
+this configuration can still use the core ticket, organization, user, and
 ticket-metric syncs after removing the CSAT and SLA sync registrations.
 
 ### Synced databases
 
-| Database                          | Zendesk resource           | Schedule    | Plan                                 |
-| --------------------------------- | -------------------------- | ----------- | ------------------------------------ |
-| **Support Tickets**               | Tickets                    | Every 5 min | All                                  |
-| **Zendesk Organizations**         | Organizations              | Every 5 min | All                                  |
-| **Zendesk Users**                 | Users (agents + end-users) | Every 5 min | All                                  |
-| **Zendesk CSAT Survey Responses** | CSAT Survey Responses      | Daily       | Support Professional / Suite Growth+ |
-| **Zendesk Ticket Metrics**        | Ticket Metrics             | Every 5 min | All                                  |
-| **Zendesk SLA Policies**          | SLA Policies               | Daily       | Support Professional / Suite Growth+ |
+| Database                          | Zendesk resource           | Schedule                    | Plan                                 |
+| --------------------------------- | -------------------------- | --------------------------- | ------------------------------------ |
+| **Support Tickets**               | Tickets                    | Every 5 min + manual repair | All                                  |
+| **Zendesk Organizations**         | Organizations              | Every 5 min                 | All                                  |
+| **Zendesk Users**                 | Users (agents + end-users) | Every 5 min                 | All                                  |
+| **Zendesk CSAT Survey Responses** | CSAT Survey Responses      | Daily                       | Support Professional / Suite Growth+ |
+| **Zendesk Ticket Metrics**        | Ticket Metrics             | Every 5 min + manual repair | All                                  |
+| **Zendesk SLA Policies**          | SLA Policies               | Daily                       | Support Professional / Suite Growth+ |
 
 #### Support Tickets
 
-| Notion property | Zendesk field             | Type        |
-| --------------- | ------------------------- | ----------- |
-| Subject         | `subject`                 | title       |
-| Status          | `status`                  | select      |
-| Priority        | `priority`                | select      |
-| Assignee        | agent name (resolved)     | richText    |
-| Group           | group name (resolved)     | richText    |
-| Ticket link     | clickable link to ticket  | url         |
-| Updated at      | `updated_at`              | date        |
-| Requester       | requester name (resolved) | richText    |
-| Organization    | org name (resolved)       | richText    |
-| Type            | `type`                    | select      |
-| Channel         | `via.channel`             | select      |
-| Tags            | `tags`                    | multiSelect |
-| Created at      | `created_at`              | date        |
-| Ticket ID       | `id`                      | richText    |
+| Notion property     | Zendesk field             | Type        |
+| ------------------- | ------------------------- | ----------- |
+| Subject             | `subject`                 | title       |
+| Status              | `status`                  | select      |
+| Priority            | `priority`                | select      |
+| Assignee            | agent name (resolved)     | richText    |
+| Assignee Record     | `assignee_id`             | relation    |
+| Group               | group name (resolved)     | richText    |
+| Ticket link         | clickable link to ticket  | url         |
+| Updated at          | `updated_at`              | date        |
+| Requester           | requester name (resolved) | richText    |
+| Requester Record    | `requester_id`            | relation    |
+| Organization        | org name (resolved)       | richText    |
+| Organization Record | `organization_id`         | relation    |
+| Type                | `type`                    | select      |
+| Channel             | `via.channel`             | select      |
+| Tags                | `tags`                    | multiSelect |
+| Created at          | `created_at`              | date        |
+| Ticket ID           | `id`                      | richText    |
 
 Each page body contains the ticket description. Assignee, requester, group,
 and organization show real names (resolved via Zendesk's
@@ -121,37 +128,40 @@ Page body contains the organization's `notes` field.
 
 #### Zendesk Users
 
-| Notion property | Zendesk field     | Type        |
-| --------------- | ----------------- | ----------- |
-| Name            | `name`            | title       |
-| Role            | `role`            | select      |
-| Email           | `email`           | email       |
-| Last login      | `last_login_at`   | date        |
-| Tags            | `tags`            | multiSelect |
-| Updated at      | `updated_at`      | date        |
-| Organization ID | `organization_id` | richText    |
-| Phone           | `phone`           | richText    |
-| Suspended       | `suspended`       | checkbox    |
-| User ID         | `id`              | richText    |
-| Created at      | `created_at`      | date        |
+| Notion property     | Zendesk field     | Type        |
+| ------------------- | ----------------- | ----------- |
+| Name                | `name`            | title       |
+| Role                | `role`            | select      |
+| Email               | `email`           | email       |
+| Last login          | `last_login_at`   | date        |
+| Tags                | `tags`            | multiSelect |
+| Updated at          | `updated_at`      | date        |
+| Organization ID     | `organization_id` | richText    |
+| Organization Record | `organization_id` | relation    |
+| Phone               | `phone`           | richText    |
+| Suspended           | `suspended`       | checkbox    |
+| User ID             | `id`              | richText    |
+| Created at          | `created_at`      | date        |
 
 #### Zendesk CSAT Survey Responses
 
-| Notion property | Zendesk field                               | Type     |
-| --------------- | ------------------------------------------- | -------- |
-| Response        | ticket ID or response ID (derived)          | title    |
-| Rating          | customer-satisfaction `rating_scale` answer | number   |
-| Rating category | `rating_category`                           | select   |
-| Feedback        | non-empty `open_ended` answers              | richText |
-| Subject         | `subjects[0].zrn`                           | richText |
-| Ticket ID       | ticket subject `id`                         | richText |
-| Responder ID    | `responder_id`                              | richText |
-| Survey ID       | `survey.id`                                 | richText |
-| Survey version  | `survey.version`                            | number   |
-| Survey state    | `survey.state`                              | select   |
-| Updated at      | latest answer `updated_at`                  | date     |
-| Expires at      | `expires_at`                                | date     |
-| Response ID     | `id`                                        | richText |
+| Notion property  | Zendesk field                               | Type     |
+| ---------------- | ------------------------------------------- | -------- |
+| Response         | ticket ID or response ID (derived)          | title    |
+| Rating           | customer-satisfaction `rating_scale` answer | number   |
+| Rating category  | `rating_category`                           | select   |
+| Feedback         | non-empty `open_ended` answers              | richText |
+| Subject          | `subjects[0].zrn`                           | richText |
+| Ticket ID        | ticket subject `id`                         | richText |
+| Ticket Record    | ticket subject `id`                         | relation |
+| Responder ID     | `responder_id`                              | richText |
+| Responder Record | `responder_id`                              | relation |
+| Survey ID        | `survey.id`                                 | richText |
+| Survey version   | `survey.version`                            | number   |
+| Survey state     | `survey.state`                              | select   |
+| Updated at       | latest answer `updated_at`                  | date     |
+| Expires at       | `expires_at`                                | date     |
+| Response ID      | `id`                                        | richText |
 
 This database uses Zendesk's current CSAT Survey Responses API. Open-ended
 feedback is also copied into the page body. It uses a daily replace sweep so
@@ -159,22 +169,23 @@ answers edited after the response was first offered are refreshed correctly.
 
 #### Zendesk Ticket Metrics
 
-| Notion property        | Zendesk field                         | Type   |
-| ---------------------- | ------------------------------------- | ------ |
-| Ticket ID              | `ticket_id`                           | title  |
-| First Reply (min)      | `reply_time_in_minutes.calendar`      | number |
-| Full Resolution (min)  | `full_resolution_time_in_minutes`     | number |
-| Reopens                | `reopens`                             | number |
-| Agents Touched         | `assignee_stations`                   | number |
-| Groups Touched         | `group_stations`                      | number |
-| Solved at              | `solved_at`                           | date   |
-| First Resolution (min) | `first_resolution_time_in_minutes`    | number |
-| Replies                | `replies`                             | number |
-| On Hold (min)          | `on_hold_time_in_minutes.calendar`    | number |
-| Agent Wait (min)       | `agent_wait_time_in_minutes.calendar` | number |
-| Requester Wait (min)   | `requester_wait_time_in_minutes`      | number |
-| Updated at             | `updated_at`                          | date   |
-| Created at             | `created_at`                          | date   |
+| Notion property        | Zendesk field                         | Type     |
+| ---------------------- | ------------------------------------- | -------- |
+| Ticket ID              | `ticket_id`                           | title    |
+| Ticket Record          | `ticket_id`                           | relation |
+| First Reply (min)      | `reply_time_in_minutes.calendar`      | number   |
+| Full Resolution (min)  | `full_resolution_time_in_minutes`     | number   |
+| Reopens                | `reopens`                             | number   |
+| Agents Touched         | `assignee_stations`                   | number   |
+| Groups Touched         | `group_stations`                      | number   |
+| Solved at              | `solved_at`                           | date     |
+| First Resolution (min) | `first_resolution_time_in_minutes`    | number   |
+| Replies                | `replies`                             | number   |
+| On Hold (min)          | `on_hold_time_in_minutes.calendar`    | number   |
+| Agent Wait (min)       | `agent_wait_time_in_minutes.calendar` | number   |
+| Requester Wait (min)   | `requester_wait_time_in_minutes`      | number   |
+| Updated at             | `updated_at`                          | date     |
+| Created at             | `created_at`                          | date     |
 
 Times use calendar minutes by default. To switch to business hours, change
 `.calendar` to `.business` in `src/ticket-metrics.ts`.
@@ -201,6 +212,16 @@ SLA targets are flattened from the `policy_metrics` array into individual
 columns by priority level, so managers can compare targets at a glance.
 Page body contains the policy description.
 
+### Relations and clearing behavior
+
+Relations use immutable Zendesk IDs while keeping readable name and ID columns.
+Tickets link to users and organizations; users link to organizations; CSAT
+responses link to tickets and responders; and metrics link to tickets.
+Relations are two-way; SLA policies remain standalone.
+
+Every transform emits every declared property. Missing nullable values are sent
+as explicit empty values so stale Notion properties and CSAT page content clear.
+
 ### Project structure
 
 ```text
@@ -218,11 +239,10 @@ src/
 
 ### How it works
 
-1. Tickets and ticket metrics use Zendesk's cursor-based Incremental Ticket
-   Export. The first run starts at Unix time `1` to backfill retained history;
-   later runs continue from the persisted `after_cursor`.
-2. The export includes archived records. Deleted ticket records become explicit
-   Notion delete changes before their scrubbed fields are transformed.
+1. Tickets and ticket metrics sync incrementally every five minutes, including
+   archived records and explicit ticket deletions.
+2. Manual repairs combine Search Export with an incremental tail and complete
+   replacement only after the tail reaches `end_of_stream`.
 3. Organizations and users use cursor-paginated list endpoints with 100 records
    per page and `mode: "replace"`.
 4. CSAT survey responses use a cursor-paginated daily replace sweep. Zendesk
@@ -232,11 +252,7 @@ src/
 6. Every record uses its stable Zendesk ID as the Notion sync key, preventing
    duplicates across pages and scheduled runs.
 
-General API calls share a 170-request/minute pacer, leaving headroom under the
-200-request Team-plan limit. Ticket and metric exports share a separate
-9-request/minute pacer because Zendesk caps incremental exports at 10/minute.
-If Zendesk still returns 429, the worker passes `Retry-After` to the Workers
-runtime for backoff.
+API families are paced separately, and 429 responses honor `Retry-After`.
 
 ### Zendesk API token
 
@@ -271,9 +287,9 @@ automatically.
 ### Triggering syncs manually
 
 ```sh
-ntn workers sync trigger ticketsSync
 ntn workers sync trigger organizationsSync
 ntn workers sync trigger usersSync
+ntn workers sync trigger ticketsSync
 ntn workers sync trigger surveyResponsesSync
 ntn workers sync trigger ticketMetricsSync
 ntn workers sync trigger slaPoliciesSync
@@ -281,6 +297,27 @@ ntn workers sync trigger slaPoliciesSync
 
 SLA Policies refreshes daily, but it can also be triggered manually after a
 policy change.
+
+Repairs are manual because replace mode deletes unseen keys and must not overlap
+the incremental syncs. After upgrading, run this once to backfill relations and
+clear stale nullable values: pause both incrementals and wait for in-flight runs
+to finish, then reset and trigger both repairs. Resume only after `sync status`
+reports completion:
+
+```sh
+ntn workers sync pause ticketsSync
+ntn workers sync pause ticketMetricsSync
+ntn workers sync status
+
+ntn workers sync state reset ticketsReconciliationSync
+ntn workers sync state reset ticketMetricsReconciliationSync
+ntn workers sync trigger ticketsReconciliationSync
+ntn workers sync trigger ticketMetricsReconciliationSync
+ntn workers sync status
+
+ntn workers sync resume ticketsSync
+ntn workers sync resume ticketMetricsSync
+```
 
 ### Adapting the schema
 
@@ -302,10 +339,10 @@ To add a new Zendesk field to any resource:
 2. Add a property to the schema with the appropriate `Schema.*` type
 3. Add a `Builder.*` call in the transform function
 
-The `PRIMARY_KEY` property is used by the platform to match incoming data to
-existing pages — don't remove it.
+Keep every schema property in its transform, using `[]` for missing nullable
+values. Do not remove `PRIMARY_KEY` or the stable-ID relations.
 
-### Incremental history and large instances
+### Incremental history and repairs
 
 Tickets and ticket metrics already use Zendesk's cursor-based incremental
 export. The initial request sends `start_time=1` as Unix epoch seconds. Every
@@ -323,17 +360,17 @@ ntn workers sync state reset ticketsSync
 ntn workers sync state reset ticketMetricsSync
 ```
 
-Organizations, users, and CSAT survey responses still use full replace sweeps.
-For large collections, follow Notion's recommended two-sync pattern: a
-scheduled incremental delta plus a manual replace backfill against the same
-database and stable key space.
+Search Export cursors expire after one hour. Incomplete repairs do not commit
+replacement deletions; reset and trigger the repair again.
 
 ### Local testing
 
-Run offline tests (no Zendesk connection needed):
+Run deterministic checks without contacting Zendesk or Notion:
 
 ```sh
+npm run check
 npm test
+npm run build
 ```
 
 Test a specific sync locally against a real Zendesk instance:
@@ -347,6 +384,7 @@ ntn workers exec organizationsSync --local
 
 - [Notion Workers documentation](https://developers.notion.com/docs/workers)
 - [Zendesk API — Tickets](https://developer.zendesk.com/api-reference/ticketing/tickets/tickets/)
+- [Zendesk API — Search Export](https://developer.zendesk.com/api-reference/ticketing/ticket-management/search/#export-search-results)
 - [Zendesk API — Organizations](https://developer.zendesk.com/api-reference/ticketing/organizations/organizations/)
 - [Zendesk API — Users](https://developer.zendesk.com/api-reference/ticketing/users/users/)
 - [Zendesk API — CSAT Survey Responses](https://developer.zendesk.com/api-reference/ticketing/ticket-management/csat_survey_responses/)
