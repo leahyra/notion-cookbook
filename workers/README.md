@@ -4,7 +4,7 @@
 There are 3 different type of Worker capabilties:
 - A **sync** imports external records into a managed Notion database on a
   schedule or on demand.
-- A **Agent tool** lets a Notion Agent query context or execute a repeatable API workflow
+- An **agent tool** lets a Notion Agent query context or execute a repeatable API workflow
   in one step.
 - A **webhook** handles events sent by another app to trigger workflows in Notion or other places.
 
