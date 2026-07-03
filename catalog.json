@@ -405,6 +405,25 @@
       }
     },
     {
+      "id": "sentry-sync",
+      "title": "Sentry sync",
+      "summary": "Sync Sentry issue triage, project reliability trends, and recent release health into three managed Notion databases.",
+      "path": "workers/sentry-sync",
+      "kind": "worker-sync",
+      "status": "ready",
+      "language": "typescript",
+      "runtime": "node",
+      "integrations": ["notion-workers", "sentry"],
+      "entrypoints": ["src/index.ts"],
+      "commands": {
+        "install": "npm install",
+        "check": "npm run check",
+        "test": "npm test",
+        "build": "npm run build",
+        "deploy": "ntn workers deploy --name sentry-sync"
+      }
+    },
+    {
       "id": "snowflake-query",
       "title": "Snowflake query agent tool",
       "summary": "Let a Notion agent discover Snowflake tables and execute bounded, read-only SQL queries.",
