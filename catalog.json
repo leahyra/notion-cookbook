@@ -405,6 +405,25 @@
       }
     },
     {
+      "id": "readwise-sync",
+      "title": "Readwise and Reader sync",
+      "summary": "Archive a Reader library and Readwise highlights in related Notion databases without deleting pages when items disappear upstream.",
+      "path": "workers/readwise-sync",
+      "kind": "worker-sync",
+      "status": "ready",
+      "language": "typescript",
+      "runtime": "node",
+      "integrations": ["notion-workers", "readwise", "reader"],
+      "entrypoints": ["src/index.ts"],
+      "commands": {
+        "install": "npm install",
+        "check": "npm run check",
+        "test": "npm test",
+        "build": "npm run build",
+        "deploy": "ntn workers deploy --name readwise-sync"
+      }
+    },
+    {
       "id": "salesforce-sync",
       "title": "Salesforce sync",
       "summary": "Sync Salesforce accounts and opportunities into related managed Notion databases.",
