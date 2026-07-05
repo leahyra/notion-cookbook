@@ -519,6 +519,25 @@
       }
     },
     {
+      "id": "todoist-sync",
+      "title": "Todoist sync",
+      "summary": "Sync open Todoist tasks and project summaries with recent completion context.",
+      "path": "workers/todoist-sync",
+      "kind": "worker-sync",
+      "status": "ready",
+      "language": "typescript",
+      "runtime": "node",
+      "integrations": ["notion-workers", "todoist"],
+      "entrypoints": ["src/index.ts"],
+      "commands": {
+        "install": "npm install",
+        "check": "npm run check",
+        "test": "npm test",
+        "build": "npm run build",
+        "deploy": "ntn workers deploy --name todoist-sync"
+      }
+    },
+    {
       "id": "vercel-production-deployment-tools",
       "title": "Vercel production deployment tools",
       "summary": "Inspect, promote, or roll back one Vercel project with live release checks.",
