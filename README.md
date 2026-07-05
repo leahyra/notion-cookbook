@@ -18,13 +18,11 @@ directory.
 - **Bring external data into Notion:** use a Worker sync for
   [GitHub issues and pull requests](workers/github-sync/),
   [GitHub stars](workers/github-stars-sync/), [HubSpot](workers/hubspot-sync/),
-  [Intercom](workers/intercom-sync/), [Jira](workers/jira-sync/),
+  [Intercom](workers/intercom-sync/),
   [Linear](workers/linear-sync/), [PagerDuty](workers/pagerduty-sync/),
-  [Raindrop.io](workers/raindrop-sync/),
   [Readwise and Reader](workers/readwise-sync/),
   [Salesforce](workers/salesforce-sync/), [Sentry](workers/sentry-sync/),
-  [Todoist](workers/todoist-sync/),
-  [Workday](workers/workday-sync/), [Zendesk](workers/zendesk-sync/) and more.
+  [Todoist](workers/todoist-sync/), [Zendesk](workers/zendesk-sync/) and more.
 - **Give a Notion Agent a reliable new capability:** execute a repeatable API
   workflow in one tool call, or connect to [Airflow](workers/airflow/), [Vega-lite charts](workers/chart-generator/),
   [CloudWatch Logs](workers/cloudwatch-logs/),
