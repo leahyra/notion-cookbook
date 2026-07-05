@@ -500,6 +500,25 @@
       }
     },
     {
+      "id": "vercel-production-deployment-tools",
+      "title": "Vercel production deployment tools",
+      "summary": "Inspect, promote, or roll back one Vercel project with live release checks.",
+      "path": "workers/vercel-production-deployment-tools",
+      "kind": "worker-tool",
+      "status": "ready",
+      "language": "typescript",
+      "runtime": "node",
+      "integrations": ["notion-workers", "vercel"],
+      "entrypoints": ["src/index.ts"],
+      "commands": {
+        "install": "npm install",
+        "check": "npm run check",
+        "test": "npm test",
+        "build": "npm run build",
+        "deploy": "ntn workers deploy --name vercel-production-deployment-tools"
+      }
+    },
+    {
       "id": "workday-sync",
       "title": "Workday employee directory sync",
       "summary": "Sync a daily employee-facing directory of Workday people, supervisory organizations, work email, Notion People references, and manager relations.",
