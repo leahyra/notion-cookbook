@@ -22,13 +22,12 @@ directory.
   [Linear](workers/linear-sync/), [PagerDuty](workers/pagerduty-sync/),
   [Readwise and Reader](workers/readwise-sync/),
   [Salesforce](workers/salesforce-sync/), [Sentry](workers/sentry-sync/),
-  [Snowflake](workers/snowflake-sync/),
   [Todoist](workers/todoist-sync/),
-  [Workday](workers/workday-sync/), or [Zendesk](workers/zendesk-sync/).
+  [Workday](workers/workday-sync/), [Zendesk](workers/zendesk-sync/) and more.
 - **Give a Notion Agent a reliable new capability:** execute a repeatable API
-  workflow in one tool call, or connect to [Airflow](workers/airflow/),
+  workflow in one tool call, or connect to [Airflow](workers/airflow/),[Vega-lite charts](workers/chart-generator/), 
   [CloudWatch Logs](workers/cloudwatch-logs/),
-  [Postgres](workers/postgres-query/), and more.
+  [Postgres](workers/postgres-query/), [Snowflake query](workers/snowflake-query/), [PowerPoint creator](workers/powerpoint-creator/), [Vercel](workers/vercel-production-deployment-tools/), and more.
 - **React to external events:** receive and verify
   [Zendesk webhooks](workers/zendesk-webhook/).
 
