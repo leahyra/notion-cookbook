@@ -25,7 +25,7 @@ directory.
   [Todoist](workers/todoist-sync/),
   [Workday](workers/workday-sync/), [Zendesk](workers/zendesk-sync/) and more.
 - **Give a Notion Agent a reliable new capability:** execute a repeatable API
-  workflow in one tool call, or connect to [Airflow](workers/airflow/), [Vega-lite charts](workers/chart-generator/), 
+  workflow in one tool call, or connect to [Airflow](workers/airflow/), [Vega-lite charts](workers/chart-generator/),
   [CloudWatch Logs](workers/cloudwatch-logs/),
   [Postgres](workers/postgres-query/), [Snowflake query](workers/snowflake-query/), [PowerPoint creator](workers/powerpoint-creator/), [Vercel](workers/vercel-production-deployment-tools/), and more.
 - **React to external events:** receive and verify
@@ -136,6 +136,7 @@ and a **webhook** handles events from another service. See the complete
 | Render and insert Vega-Lite charts                  | [Chart generator](workers/chart-generator/)                                       | Vega-Lite           |
 | Browse log groups, streams, and events              | [CloudWatch Logs](workers/cloudwatch-logs/)                                       | AWS CloudWatch Logs |
 | Learn the database-query pattern with seeded data   | [DuckDB query](workers/duckdb-query/)                                             | DuckDB              |
+| Review and publish an existing draft release        | [GitHub draft release tools](workers/github-draft-release-tools/)                 | GitHub              |
 | Query a database with read-only SQL                 | [Postgres query](workers/postgres-query/)                                         | PostgreSQL          |
 | Turn a Notion page into PowerPoint slides (`.pptx`) | [PowerPoint creator](workers/powerpoint-creator/)                                 | Notion, PowerPoint  |
 | Query a warehouse with read-only SQL                | [Snowflake query](workers/snowflake-query/)                                       | Snowflake           |
